@@ -27,7 +27,9 @@ def main():
     print "Server Started."
     while True:
         c, addr = s.accept()
+        data = c.recv(1024)
         print "client connected from ip: <" + str(addr) +">"
+        print(data)
         t = threading.Thread(target=RetrFile, args=("retrThread", c))
         t.start()
     s.close()
