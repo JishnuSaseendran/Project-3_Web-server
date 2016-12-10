@@ -1,6 +1,9 @@
+## using fork system call 
+
 import socket
 import sys
 import time
+import os
 
 host_dir = '.'
 
@@ -30,13 +33,24 @@ def bind_socket(host, port):
 def serve(server):
     while True:
         print("Waiting for new connection\n")
-	server.listen(1)
-	conn_socket, address =  server.accept()
-	received_rqst = conn_socket.recv(1024)
+	server.listen(10)
+	client_connection, address = server.accept()
+	pid = os.fork()
+	if(pid == 0):
+	    server.close()
+	    handle_request(client_connection, address)
+	    client_connection.close()
+	    os.exit(0)
+	else:
+	    client_connection.close()
+
+
+def handle_request(client_connection, address):
+	received_rqst = client_connection.recv(1024)
 	print("Recived connection from:",address)
 	received_contnt = bytes.decode(received_rqst)
 	request_method = received_contnt.split(' ')[0]
-        print("Request method:",request_method)
+	print("Requested method:",request_method)
 	if(request_method == 'GET'):
 	    request_file = received_contnt.split(' ')[1]
 	    if(request_file == '/'):
@@ -50,12 +64,12 @@ def serve(server):
 		header = header_(200, content_type)
 	    except:
 		header = header_(400, 'text/html')
-		response_data = "<html><body><p> Error 404 File not found</p></body></html>".encode()	
+		response_data = b'<html><body><p> Error 404 File not found</p></body></html>'	
 	    final_response = header.encode()
 	    final_response += response_data
-	    print("Response:",final_response)
-	    conn_socket.send(final_response)				  
-	    conn_socket.close()
+	    client_connection.send(final_response)
+            time.sleep(30)
+            client_connection.close()
         else:
 	    print(request_method)
 	    print("HTTP request method unknown")			
